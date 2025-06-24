@@ -4,41 +4,41 @@ import pyautogui
 import time
 from collections import deque
 
-# MediaPipe setup
+
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands(max_num_hands=1, min_detection_confidence=0.75)
 mp_draw = mp.solutions.drawing_utils
 
-# Webcam setup
+
 cap = cv2.VideoCapture(0)
 cap.set(3, 640)
 cap.set(4, 480)
 
-# State variables
+
 position_history = deque(maxlen=4)
-cooldown = 0.3  # seconds
+cooldown = 0.3
 last_gesture_time = time.time()
 last_action = ""
 fist_triggered = False
 
-# Helper: Get hand center
+
 def get_hand_center(handLms):
     landmarks = [handLms.landmark[i] for i in [0, 5, 9]]
     avg_x = sum([lm.x for lm in landmarks]) / len(landmarks)
     avg_y = sum([lm.y for lm in landmarks]) / len(landmarks)
     return int(avg_x * 640), int(avg_y * 480)
 
-# Helper: Count fingers up accurately (thumb + fingers)
+
 def fingers_up(handLms):
     fingers = []
 
-    # Thumb
+    
     if handLms.landmark[4].x < handLms.landmark[3].x:
         fingers.append(1)
     else:
         fingers.append(0)
 
-    # Other fingers
+  
     tip_ids = [8, 12, 16, 20]
     for tip_id in tip_ids:
         if handLms.landmark[tip_id].y < handLms.landmark[tip_id - 2].y:
@@ -48,7 +48,6 @@ def fingers_up(handLms):
 
     return sum(fingers)
 
-# Gesture detection from hand movement
 def detect_smoothed_gesture():
     global last_gesture_time, last_action
 
@@ -98,22 +97,19 @@ while True:
 
             finger_count = fingers_up(handLms)
 
-            # ✊ Closed palm detected (FIST)
             if finger_count < 2:
                 if not fist_triggered:
                     pyautogui.press('space')  # Pause/resume
                     gesture_text = "SPACE Triggered (Pause/Resume)"
                     fist_triggered = True
             else:
-                fist_triggered = False  # Reset for next fist
-                # 🖐️ Open hand - continue tracking
+                fist_triggered = False  
                 cx, cy = get_hand_center(handLms)
                 position_history.append((cx, cy))
                 gesture = detect_smoothed_gesture()
                 if gesture:
                     gesture_text = f"Gesture: {gesture}"
 
-    # Overlay texts
     if last_action:
         cv2.putText(img, f"Last: {last_action}", (10, 40),
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
@@ -122,7 +118,6 @@ while True:
         cv2.putText(img, gesture_text, (10, 80),
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-    # Show finger count for debugging
     cv2.putText(img, f"Fingers: {finger_count}", (10, 120),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 0), 2)
 
@@ -133,3 +128,4 @@ while True:
 
 cap.release()
 cv2.destroyAllWindows()
+   
